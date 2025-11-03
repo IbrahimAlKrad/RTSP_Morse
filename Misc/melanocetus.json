@@ -1,0 +1,11 @@
+{
+  "Audio": {
+    "TargetRecordingSampleRate": 24000,
+    "CodecSampleRate": 24000,
+    "FrameDurationMs": 20,
+    "Device": "default"
+  },
+  "Runtime": {
+    "RecordingSampleRate": null
+  }
+}
