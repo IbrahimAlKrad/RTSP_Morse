@@ -3,6 +3,7 @@
 import pyaudio
 import time
 from confluent_kafka import Producer
+from .generated import morse_frame_pb2
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
@@ -25,7 +26,15 @@ if __name__ == "__main__":
             print("ERROR: Message failed delivery: {}".format(err))
 
     def audio_callback(in_data, frame_count, time_info, status):
-        producer.produce(KAFKA_TOPIC, value=in_data, callback=delivery_callback)
+        chunk = morse_frame_pb2.MorseFrame()
+        chunk.sample_rate = RATE
+        chunk.channels = CHANNELS
+        chunk.data_format = FORMAT
+        chunk.data = in_data
+
+        serialized_data = chunk.SerializeToString()
+
+        producer.produce(KAFKA_TOPIC, value=serialized_data, callback=delivery_callback)
 
         producer.poll(0)
 

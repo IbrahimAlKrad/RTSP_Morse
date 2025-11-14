@@ -1,0 +1,6 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated protobuf files
+audio_app/generated/*_pb2.py
