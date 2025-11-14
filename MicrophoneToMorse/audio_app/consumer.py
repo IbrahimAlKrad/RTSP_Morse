@@ -6,6 +6,7 @@ from matplotlib.animation import FuncAnimation
 from confluent_kafka import Consumer
 import collections
 import pyaudio
+import time
 from .generated import morse_frame_pb2
 
 KAFKA_BROKER = "localhost:9092"
@@ -51,7 +52,12 @@ if __name__ == "__main__":
     ax.set_ylabel("Normalized RMS Amplitude (Volume)")
     plt.tight_layout()
 
+    last_warning_time = 0.0
+    WARNING_INTERVAL = 5.0
+
     def update_plot(frame):
+        global last_warning_time
+
         msg = consumer.poll(timeout=0.01)
 
         if msg is None:
@@ -67,14 +73,24 @@ if __name__ == "__main__":
             dtype = DTYPE_FROM_FORMAT[chunk.data_format]
             max_amplitude = MAX_AMP_FROM_FORMAT[chunk.data_format]
         except KeyError:
-            print(f"Received chunk with unsupported format: {chunk.data_format}")
+            print(f"Error: Received chunk with unsupported format: {chunk.data_format}")
             return (line,)
 
         audio_samples = np.frombuffer(chunk.data, dtype=dtype)
         samples_float = audio_samples.astype(np.float64)
         rms = np.sqrt(np.mean(samples_float**2))
         normalized_rms = rms / max_amplitude
-        plot_data.append(normalized_rms)
+
+        if normalized_rms > 1.0:
+            current_time = time.time()
+            if (current_time - last_warning_time) > WARNING_INTERVAL:
+                print(
+                    f"Warning: Audio clipping detected! Normalized RMS: {normalized_rms:.2f}"
+                )
+                last_warning_time = current_time
+
+        clamped_rms = np.clip(normalized_rms, 0.0, 1.0)
+        plot_data.append(clamped_rms)
         line.set_ydata(np.array(plot_data))
         return (line,)
 
