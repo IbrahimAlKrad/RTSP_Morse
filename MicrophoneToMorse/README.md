@@ -27,7 +27,11 @@ protoc -I=protos --python_out=audio_app/generated protos/digital_frame.proto
 The pipeline can be started by running
 
 ```bash
-uv python -m audio_app
+uv run python -m audio_app
 ```
 
 Currently, they are only example scripts that read from the microphone and write to a kafka topic, where the consumer reads it and display and animated graph of the volume to check if it is working.
+
+## External Documentation
+
+This project heavily uses the Python package `confluent_kafka`. The [official documenation](https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#) provides helpful insights.
