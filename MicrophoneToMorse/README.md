@@ -17,16 +17,16 @@ On apple silicon, portaudio needs to be installed seperately for `pyaudio` to wo
 Before running the scripts, the protobuf schemas need to be generated from the root of the project by running
 
 ```bash
+protoc -I=protos --python_out=audio_app/generated protos/audio_chunk.proto
 protoc -I=protos --python_out=audio_app/generated protos/morse_frame.proto
 ```
 
 ## Running the scripts
 
-The scripts can be started by running
+The pipeline can be started by running
 
 ```bash
-uv python -m audio_app.consumer
-uv python -m audio_app.producer
+uv python -m audio_app
 ```
 
 Currently, they are only example scripts that read from the microphone and write to a kafka topic, where the consumer reads it and display and animated graph of the volume to check if it is working.
