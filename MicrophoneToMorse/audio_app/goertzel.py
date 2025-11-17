@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 
+import signal
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, Producer
 import collections
 import pyaudio
 import time
 import math
-from .generated import morse_frame_pb2
+from .generated import audio_chunk_pb2, morse_frame_pb2
 
-TARGET_FREQUENCY = 550
+TARGET_FREQUENCY = 400
+KAFKA_KEY = b"400"
 
 KAFKA_BROKER = "localhost:9092"
-KAFKA_TOPIC = "raw_audio_topic"
-GROUP_ID = "goertzel-visualizer-group"
+SOURCE_TOPIC = "raw_audio_topic"
+TARGET_TOPIC = "frequency_intensity"
+GROUP_ID = "goertzel-extractor-group"
 
 DTYPE_FROM_FORMAT = {
     pyaudio.paInt8: np.int8,
@@ -31,29 +33,38 @@ MAX_AMP_FROM_FORMAT = {
 }
 
 
+def shutdown(sig, frame):
+    print("[goertzel] Caught SIGINT - shutting down...")
+    try:
+        consumer.close()
+    except Exception:
+        pass
+    try:
+        print("Flushing remaining Kafka messages...")
+        producer.flush()
+        print("Done.")
+    except Exception:
+        pass
+    sys.exit(0)
+
+
 if __name__ == "__main__":
-    config = {
+    signal.signal(signal.SIGINT, shutdown)
+
+    source_config = {
         "bootstrap.servers": KAFKA_BROKER,
         "group.id": GROUP_ID,
         "auto.offset.reset": "latest",
     }
 
-    consumer = Consumer(config)
-    consumer.subscribe([KAFKA_TOPIC])
+    target_config = {"bootstrap.servers": KAFKA_BROKER, "acks": "all"}
 
-    PLOT_HISTORY_LEN = 200
-    plot_data = collections.deque(maxlen=PLOT_HISTORY_LEN)
-    plot_data.extend(np.zeros(PLOT_HISTORY_LEN))
+    consumer = Consumer(source_config)
+    consumer.subscribe([SOURCE_TOPIC])
 
-    fig, ax = plt.subplots()
-    (line,) = ax.plot(np.array(plot_data))
+    producer = Producer(target_config)
 
-    ax.set_ylim(0, 1.0)
-    ax.set_xlim(0, PLOT_HISTORY_LEN)
-    ax.set_title("Live Audio Volume (RMS) from Kafka")
-    ax.set_xlabel("Time (Chunks)")
-    ax.set_ylabel("Normalized RMS Amplitude (Volume)")
-    plt.tight_layout()
+    print(f"Connected to Kafka broker at {KAFKA_BROKER}")
 
     WARNING_INTERVAL = 5.0
     last_warning_times = collections.defaultdict(lambda: 0)
@@ -97,44 +108,47 @@ if __name__ == "__main__":
 
         return normalized_magnitude
 
-    def update_plot(frame):
-        msg = consumer.poll(timeout=0.01)
+    def delivery_callback(err, msg):
+        if err:
+            print("ERROR: Message failed delivery: {}".format(err))
+
+    print(f"Consuming from '{SOURCE_TOPIC}' and producing to '{TARGET_TOPIC}'...")
+    while True:
+        msg = consumer.poll(timeout=1.0)
 
         if msg is None:
-            return (line,)
-        if msg.error():
-            print(f"Consumer error: {msg.error()}")
-            return (line,)
+            print("Waiting...")
+        else:
+            chunk = audio_chunk_pb2.AudioChunk()
+            chunk.ParseFromString(msg.value())
 
-        chunk = morse_frame_pb2.MorseFrame()
-        chunk.ParseFromString(msg.value())
+            try:
+                dtype = DTYPE_FROM_FORMAT[chunk.data_format]
+                max_amplitude = MAX_AMP_FROM_FORMAT[chunk.data_format]
+            except KeyError:
+                print(
+                    f"Error: Received chunk with unsupported format: {chunk.data_format}"
+                )
+                continue
 
-        try:
-            dtype = DTYPE_FROM_FORMAT[chunk.data_format]
-            max_amplitude = MAX_AMP_FROM_FORMAT[chunk.data_format]
-        except KeyError:
-            print(f"Error: Received chunk with unsupported format: {chunk.data_format}")
-            return (line,)
+            audio_samples = np.frombuffer(chunk.data, dtype=dtype)
+            samples_float = audio_samples.astype(np.float64)
+            normalized_magnitude = goertzel(
+                samples_float, chunk.sample_rate, TARGET_FREQUENCY, max_amplitude
+            )
+            clamped_magnitude = np.clip(normalized_magnitude, 0.0, 1.0)
 
-        audio_samples = np.frombuffer(chunk.data, dtype=dtype)
-        samples_float = audio_samples.astype(np.float64)
-        normalized_magnitude = goertzel(
-            samples_float, chunk.sample_rate, TARGET_FREQUENCY, max_amplitude
-        )
-        clamped_rms = np.clip(normalized_magnitude, 0.0, 1.0)
-        plot_data.append(clamped_rms)
-        line.set_ydata(np.array(plot_data))
-        return (line,)
+            frame = morse_frame_pb2.MorseFrame()
+            frame.magnitude = clamped_magnitude
+            frame.frequency = TARGET_FREQUENCY
 
-    ani = FuncAnimation(
-        fig, update_plot, blit=True, interval=10, cache_frame_data=False
-    )
+            serialized_data = frame.SerializeToString()
 
-    try:
-        print(f"Consuming from '{KAFKA_TOPIC}' and visualizing frequency magnitude...")
-        plt.show()
-    except KeyboardInterrupt:
-        print("Stopping visualizer...")
-    finally:
-        consumer.close()
-        print("Done.")
+            producer.produce(
+                TARGET_TOPIC,
+                key=KAFKA_KEY,
+                value=serialized_data,
+                callback=delivery_callback,
+            )
+
+            producer.poll(0)

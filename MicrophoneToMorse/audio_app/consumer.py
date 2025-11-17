@@ -66,7 +66,7 @@ if __name__ == "__main__":
             print(f"Consumer error: {msg.error()}")
             return (line,)
 
-        chunk = morse_frame_pb2.MorseFrame()
+        chunk = morse_frame_pb2.AudioChunk()
         chunk.ParseFromString(msg.value())
 
         try:
