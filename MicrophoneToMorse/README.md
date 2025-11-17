@@ -19,6 +19,7 @@ Before running the scripts, the protobuf schemas need to be generated from the r
 ```bash
 protoc -I=protos --python_out=audio_app/generated protos/audio_chunk.proto
 protoc -I=protos --python_out=audio_app/generated protos/morse_frame.proto
+protoc -I=protos --python_out=audio_app/generated protos/digital_frame.proto
 ```
 
 ## Running the scripts

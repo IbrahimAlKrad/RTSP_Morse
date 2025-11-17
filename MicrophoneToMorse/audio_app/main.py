@@ -87,6 +87,12 @@ def main():
     start("goertzel_visualizer", "python -m audio_app.goertzel_visualizer")
     time.sleep(0.5)
 
+    start("digitalizer_visualizer", "python -m audio_app.digitalizer_visualizer")
+    time.sleep(0.5)
+
+    start("digitalizer", "python -m audio_app.digitalizer")
+    time.sleep(0.5)
+
     start("goertzel", "python -m audio_app.goertzel")
     time.sleep(0.5)
 
