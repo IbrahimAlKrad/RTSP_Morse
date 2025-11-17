@@ -106,6 +106,9 @@ class StreamOperator(Generic[InputT, OutputT]):
             if msg is None:
                 continue
 
+            if msg.key() != self.kafka_key:
+                continue
+
             try:
                 input_msg = self.INPUT_TYPE()
                 input_msg.ParseFromString(msg.value())
