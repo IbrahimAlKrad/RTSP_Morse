@@ -13,7 +13,8 @@ class DigitalizerOperator(
     SOURCE_TOPIC = "frequency_intensity"
     TARGET_TOPIC = "frequency_digital"
     GROUP_ID = "digital-extractor-group"
-    KAFKA_KEY = b"400"
+    SOURCE_KAFKA_KEY = b"400"
+    TARGET_KAFKA_KEY = b"400"
 
     TARGET_FREQUENCY = 400
 

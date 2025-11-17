@@ -17,7 +17,7 @@ class GoertzelOperator(
     SOURCE_TOPIC = "raw_audio_topic"
     TARGET_TOPIC = "frequency_intensity"
     GROUP_ID = "goertzel-extractor-group"
-    KAFKA_KEY = b"400"
+    TARGET_KAFKA_KEY = b"400"
 
     TARGET_FREQUENCY = 400
 

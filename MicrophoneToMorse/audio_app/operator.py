@@ -20,7 +20,8 @@ class StreamOperator(Generic[InputT, OutputT]):
     SOURCE_TOPIC: str = None
     TARGET_TOPIC: str = None
     GROUP_ID: str = None
-    KAFKA_KEY: bytes = None
+    SOURCE_KAFKA_KEY: bytes = None
+    TARGET_KAFKA_KEY: bytes = None
 
     KAFKA_BROKER: str = "localhost:9092"
 
@@ -29,13 +30,15 @@ class StreamOperator(Generic[InputT, OutputT]):
         source_topic: Optional[str] = None,
         target_topic: Optional[str] = None,
         group_id: Optional[str] = None,
-        kafka_key: Optional[bytes] = None,
+        source_kafka_key: Optional[bytes] = None,
+        target_kafka_key: Optional[bytes] = None,
         kafka_broker: Optional[str] = None,
     ):
         self.source_topic = source_topic or self.SOURCE_TOPIC
         self.target_topic = target_topic or self.TARGET_TOPIC
         self.group_id = group_id or self.GROUP_ID
-        self.kafka_key = kafka_key or self.KAFKA_KEY
+        self.source_kafka_key = source_kafka_key or self.SOURCE_KAFKA_KEY
+        self.target_kafka_key = target_kafka_key or self.TARGET_KAFKA_KEY
         self.kafka_broker = kafka_broker or self.KAFKA_BROKER
 
         if not self.source_topic:
@@ -106,7 +109,9 @@ class StreamOperator(Generic[InputT, OutputT]):
             if msg is None:
                 continue
 
-            if msg.key() != self.kafka_key:
+            if (self.source_kafka_key is not None) and (
+                msg.key() != self.source_kafka_key
+            ):
                 continue
 
             try:
@@ -129,7 +134,7 @@ class StreamOperator(Generic[InputT, OutputT]):
                 serialized_data = output_msg.SerializeToString()
                 self.producer.produce(
                     self.target_topic,
-                    key=self.kafka_key,
+                    key=self.target_kafka_key,
                     value=serialized_data,
                     callback=self._delivery_callback,
                 )
