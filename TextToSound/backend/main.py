@@ -1,21 +1,6 @@
-import sys
-import json
-import time
-from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
+from confluent_kafka import Consumer, Producer, KafkaError
+from constants import MORSE_CODE_DICT
 
-# Morse Code Dictionary
-MORSE_CODE_DICT = {
-    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 
-    'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 
-    'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 
-    'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 
-    'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--', 
-    'Z': '--..', 
-    '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', 
-    '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', 
-    ',': '--..--', '.': '.-.-.-', '?': '..--..', '/': '-..-.', '-': '-....-', 
-    '(': '-.--.', ')': '-.--.-', ' ': ' '
-}
 
 def text_to_morse(text):
     morse_code = []
