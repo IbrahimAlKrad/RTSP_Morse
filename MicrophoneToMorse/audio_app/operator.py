@@ -66,6 +66,7 @@ class StreamOperator(Generic[InputT, OutputT]):
 
         self.warning_throttler = WarningThrottler(self.__class__.__name__)
 
+        self._shutdown_requested = False
         signal.signal(signal.SIGINT, self._shutdown)
 
         print(
@@ -90,7 +91,11 @@ class StreamOperator(Generic[InputT, OutputT]):
 
     def _shutdown(self, sig, frame):
         print(f"[{self.__class__.__name__}] Caught SIGINT - shutting down...")
+        self._shutdown_requested = True
+
+    def _cleanup(self):
         try:
+            print(f"[{self.__class__.__name__}] Closing consumer...")
             self.consumer.close()
         except Exception:
             pass
@@ -100,11 +105,14 @@ class StreamOperator(Generic[InputT, OutputT]):
             print(f"[{self.__class__.__name__}] Done.")
         except Exception:
             pass
-        sys.exit(0)
+        print(f"[{self.__class__.__name__}] Shutdown complete.")
 
     def run(self):
-        while True:
+        while not self._shutdown_requested:
             msg = self.consumer.poll(timeout=1.0)
+
+            if self._shutdown_requested:
+                break
 
             if msg is None:
                 continue
@@ -141,3 +149,5 @@ class StreamOperator(Generic[InputT, OutputT]):
                 self.producer.poll(0)
             except Exception as e:
                 print(f"[{self.__class__.__name__}] Error producing message: {e}")
+
+        self._cleanup()

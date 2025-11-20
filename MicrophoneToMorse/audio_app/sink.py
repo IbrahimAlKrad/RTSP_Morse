@@ -51,6 +51,7 @@ class Sink(Generic[InputT]):
 
         self.warning_throttler = WarningThrottler(self.__class__.__name__)
 
+        self._shutdown_requested = False
         signal.signal(signal.SIGINT, self._shutdown)
 
         print(
@@ -69,15 +70,20 @@ class Sink(Generic[InputT]):
 
     def _shutdown(self, sig, frame):
         print(f"[{self.__class__.__name__}] Caught SIGINT - shutting down...")
+        self._shutdown_requested = True
+
+    def _cleanup(self):
         try:
             self.consumer.close()
         except Exception:
             pass
-        sys.exit(0)
 
     def run(self):
-        while True:
+        while not self._shutdown_requested:
             msg = self.consumer.poll(timeout=1.0)
+
+            if self._shutdown_requested:
+                break
 
             if msg is None:
                 continue
@@ -96,3 +102,5 @@ class Sink(Generic[InputT]):
                 self.consume(input_msg)
             except Exception as e:
                 self.on_consume_error(e, input_msg)
+
+        self._cleanup()

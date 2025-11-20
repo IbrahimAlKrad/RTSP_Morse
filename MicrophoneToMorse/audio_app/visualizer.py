@@ -78,10 +78,10 @@ class Visualizer(Sink):
         self.line.set_ydata(np.array(self.plot_data))
         return (self.line,)
 
-    def _shutdown(self, sig, frame):
+    def _cleanup(self):
         print(f"[{self.__class__.__name__}] Closing plot...")
         plt.close()
-        super()._shutdown(sig, frame)
+        super()._cleanup()
 
     def run(self):
         consumer_thread = threading.Thread(target=super().run, daemon=True)
