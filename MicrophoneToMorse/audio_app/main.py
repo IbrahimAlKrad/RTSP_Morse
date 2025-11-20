@@ -99,6 +99,9 @@ def main():
     start("producer", "python -m audio_app.producer")
     time.sleep(0.5)
 
+    start("morser", "python -m audio_app.morser")
+    time.sleep(0.5)
+
     print("[orchestrator] Services started. Press Ctrl-C to shut down.")
 
     signal.pause() if platform.system() != "Windows" else time.sleep(10**9)

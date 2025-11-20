@@ -20,17 +20,22 @@ Before running the scripts, the protobuf schemas need to be generated from the r
 protoc -I=protos --python_out=audio_app/generated protos/audio_chunk.proto
 protoc -I=protos --python_out=audio_app/generated protos/morse_frame.proto
 protoc -I=protos --python_out=audio_app/generated protos/digital_frame.proto
+protoc -I=protos --python_out=audio_app/generated protos/morse_symbol.proto
 ```
 
 ## Running the scripts
 
-The pipeline can be started by running
+The pipeline with debug visualizers can be started by running
 
 ```bash
 uv run python -m audio_app
 ```
 
-Currently, they are only example scripts that read from the microphone and write to a kafka topic, where the consumer reads it and display and animated graph of the volume to check if it is working.
+The final sink (morse code transcriber) can be viewed in a console using
+
+```bash
+uv run python -m audio_app.morser_visualizer
+```
 
 ## External Documentation
 
