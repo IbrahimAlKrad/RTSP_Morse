@@ -91,6 +91,7 @@ class GoertzelOperator(
         frame = morse_frame_pb2.MorseFrame()
         frame.magnitude = clamped_magnitude
         frame.frequency = self.TARGET_FREQUENCY
+        frame.timestamp = input_msg.timestamp
 
         return frame
 

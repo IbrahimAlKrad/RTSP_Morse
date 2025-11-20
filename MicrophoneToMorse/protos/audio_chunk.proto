@@ -6,4 +6,6 @@ message AudioChunk {
     uint32 data_format = 3;
 
     bytes data = 4;
+
+    double timestamp = 5;
 }

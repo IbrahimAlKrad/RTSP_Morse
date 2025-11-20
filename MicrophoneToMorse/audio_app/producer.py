@@ -54,6 +54,7 @@ if __name__ == "__main__":
         chunk.channels = CHANNELS
         chunk.data_format = FORMAT
         chunk.data = in_data
+        chunk.timestamp = time_info["input_buffer_adc_time"]
 
         serialized_data = chunk.SerializeToString()
 

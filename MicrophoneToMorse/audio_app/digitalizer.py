@@ -27,6 +27,7 @@ class DigitalizerOperator(
         frame = digital_frame_pb2.DigitalFrame()
         frame.high = high
         frame.frequency = self.TARGET_FREQUENCY
+        frame.timestamp = input_msg.timestamp
 
         return frame
 
