@@ -25,6 +25,18 @@ protoc -I=protos --python_out=audio_app/generated protos/morse_symbol.proto
 
 ## Running the scripts
 
+The application expects a kafka broker to be running at `localhost:9092`. The `docker-compose.yml` can be used to achieve exactly this by running
+
+```bash
+docker compose up -d
+```
+
+and be shut down after finishing the app using
+
+```bash
+docker compose down -v
+```
+
 The pipeline with debug visualizers can be started by running
 
 ```bash
