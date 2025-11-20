@@ -2,6 +2,17 @@
 
 This part of the pipeline reads from a microphone, splits by transmit frequency and extracts the detected morse code in an apache Kafka pipeline.
 
+## Input expectations
+
+This pipeline expects the input to be morse audio according to the following specification:
+
+- `dit_duration` is equal to 0.1s and will be used in the calculation of durations in the following.
+- A dot (.) has a duration of `dit_duration`.
+- A dash (-) has a duration of `3 * dit_duration`.
+- A pause between symbols is `dit_duration`.
+- A pause between words is `7 * dit_duration`.
+- The pipeline allows for some tolerance, but this should be the target durations.
+
 ## Installing requirements
 
 This project uses `uv` to install and manage the Python venv and dependencies and can be restored using `uv sync`. If not using uv, `pyproject.toml` contains the required dependencies and can be used as a reference to install required dependencies.
