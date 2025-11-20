@@ -3,9 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { Kafka } from "kafkajs";
 import type { Route } from "./+types/home";
 import { useMorseAudio } from "../hooks/useMorseAudio";
+import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import { ExampleTemplates } from "../components/ExampleTemplates";
 import { ControlPanel } from "../components/ControlPanel";
 import { MorseDisplay } from "../components/MorseDisplay";
+import { ConnectionStatus } from "../components/ConnectionStatus";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -24,7 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const kafka = new Kafka({
     clientId: "frontend-producer",
-    brokers: ["localhost:9094"],
+    brokers: [(process.env.KAFKA_BROKERS || "localhost:9094")],
   });
 
   const producer = kafka.producer();
@@ -47,6 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Home() {
   const actionData = useActionData<typeof action>();
   const [lastMessage, setLastMessage] = useState<string>("");
+  const { connectionError } = useConnectionStatus();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,10 +65,10 @@ export default function Home() {
   } = useMorseAudio();
 
   useEffect(() => {
-    console.log("[SSE] Connecting to /stream...");
-    const eventSource = new EventSource("/stream");
+    console.log("[SSE] Connecting to /stream for Morse messages...");
+    const morseStream = new EventSource("/stream");
 
-    eventSource.onmessage = (event) => {
+    morseStream.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.morse) {
         console.log(`[Kafka Consumer] Received from 'morse_output': "${data.morse}"`);
@@ -74,14 +77,14 @@ export default function Home() {
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error("[SSE] Connection error:", err);
-      eventSource.close();
+    morseStream.onerror = (err) => {
+      console.error("[SSE] Morse stream error:", err);
+      morseStream.close();
     };
 
     return () => {
-      console.log("[SSE] Closing connection");
-      eventSource.close();
+      console.log("[SSE] Closing Morse stream");
+      morseStream.close();
     };
   }, [playMorse]);
 
@@ -95,9 +98,14 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white font-sans p-4">
       <div className="max-w-5xl w-full">
-        <h1 className="text-3xl font-bold mb-6 text-center text-blue-400 tracking-wider">
-          Text to Morse Sound
-        </h1>
+        <div className="flex items-center justify-center mb-6 relative">
+          <h1 className="text-3xl font-bold text-center text-blue-400 tracking-wider">
+            Text to Morse Sound
+          </h1>
+
+          {/* Status Pill */}
+          <ConnectionStatus isConnected={!connectionError} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form - Left/Top */}

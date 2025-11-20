@@ -3,14 +3,14 @@ import { Kafka } from "kafkajs";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const kafka = new Kafka({
-        clientId: "frontend-client",
+        clientId: "frontend-health-client",
         brokers: [(process.env.KAFKA_BROKERS || "localhost:9094")],
     });
 
-    const consumer = kafka.consumer({ groupId: "frontend-group-" + Date.now() });
+    const consumer = kafka.consumer({ groupId: "frontend-health-group-" + Date.now() });
 
     await consumer.connect();
-    await consumer.subscribe({ topic: "morse_output", fromBeginning: false });
+    await consumer.subscribe({ topic: "backend_health", fromBeginning: false });
 
     const stream = new ReadableStream({
         async start(controller) {
@@ -18,7 +18,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 eachMessage: async ({ topic, partition, message }) => {
                     const text = message.value?.toString();
                     if (text) {
-                        const data = `data: ${JSON.stringify({ morse: text })}\n\n`;
+                        const data = `data: ${text}\n\n`;
                         controller.enqueue(new TextEncoder().encode(data));
                     }
                 },

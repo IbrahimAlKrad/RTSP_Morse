@@ -18,6 +18,28 @@ Both topics are auto-created by Kafka on first use.
 - Bun (for frontend)
 - Python 3.12+ & uv (for backend)
 
+## Configuration
+ 
+ Both backend and frontend use environment variables for configuration.
+ 
+ ### Backend
+
+ **Default `.env` content:**
+ ```ini
+ KAFKA_BOOTSTRAP_SERVERS=localhost:9094
+ KAFKA_GROUP_ID=python_morse_converter
+ INPUT_TOPIC=text_input
+ OUTPUT_TOPIC=morse_output
+ HEARTBEAT_TOPIC=backend_health
+ ```
+ 
+ ### Frontend
+ 
+ **Default `.env` content:**
+ ```ini
+ KAFKA_BROKERS=localhost:9094
+ ```
+ 
 ## Setup & Run
 
 ### 1. Start Kafka Infrastructure
