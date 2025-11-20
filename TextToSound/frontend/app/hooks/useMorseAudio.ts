@@ -61,6 +61,18 @@ export function useMorseAudio() {
         };
     }, []);
 
+    const [isLightOn, setIsLightOn] = useState(false);
+    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+    // ... (previous refs)
+
+    // Clear timeouts on unmount
+    useEffect(() => {
+        return () => {
+            timeoutsRef.current.forEach(clearTimeout);
+        };
+    }, []);
+
     const playMorse = useCallback((morse: string) => {
         if (!audioContextRef.current || !masterGainRef.current) return;
         const ctx = audioContextRef.current;
@@ -69,36 +81,53 @@ export function useMorseAudio() {
             ctx.resume();
         }
 
+        // Clear any pending visual timeouts
+        timeoutsRef.current.forEach(clearTimeout);
+        timeoutsRef.current = [];
+        setIsLightOn(false);
+
         setIsPlaying(true);
         console.log(`[Playback] Starting Morse playback: "${morse}"`);
 
         const dit = ditDurationRef.current / 1000; // Convert ms to seconds
         let currentTime = ctx.currentTime;
+        const startTime = currentTime; // Capture start time for timeout calculations
 
         // Add a small buffer to start
         currentTime += 0.1;
 
         const currentVol = volumeRef.current;
 
-        // Skip playback if volume is 0
-        if (currentVol <= 0) {
-            setIsPlaying(false);
-            return;
-        }
+        // Helper to schedule visual toggle
+        const scheduleVisual = (time: number, isOn: boolean) => {
+            const delay = (time - ctx.currentTime) * 1000;
+            if (delay >= 0) {
+                const id = setTimeout(() => setIsLightOn(isOn), delay);
+                timeoutsRef.current.push(id);
+            }
+        };
 
         for (const char of morse) {
             if (char === '.') {
-                // Dot: 1 dit on
-                playTone(ctx, masterGainRef.current, frequencyRef.current, dit, currentTime);
-                // Advance: 1 dit on + 1 dit gap (intra-symbol)
+                // Dot
+                if (currentVol > 0) {
+                    playTone(ctx, masterGainRef.current, frequencyRef.current, dit, currentTime);
+                }
+                scheduleVisual(currentTime, true);
+                scheduleVisual(currentTime + dit, false);
+
                 currentTime += dit * 2;
             } else if (char === '-') {
-                // Dash: 3 dits on
-                playTone(ctx, masterGainRef.current, frequencyRef.current, dit * 3, currentTime);
-                // Advance: 3 dits on + 1 dit gap (intra-symbol)
+                // Dash
+                if (currentVol > 0) {
+                    playTone(ctx, masterGainRef.current, frequencyRef.current, dit * 3, currentTime);
+                }
+                scheduleVisual(currentTime, true);
+                scheduleVisual(currentTime + dit * 3, false);
+
                 currentTime += dit * 4;
             } else if (char === ' ') {
-                // Space: additional 2 dits (on top of the 1 dit gap from previous symbol)
+                // Space
                 currentTime += dit * 2;
             }
         }
@@ -107,14 +136,18 @@ export function useMorseAudio() {
         const totalDuration = currentTime - ctx.currentTime;
         console.log(`[Playback] Sequence duration: ${totalDuration.toFixed(2)}s`);
 
-        setTimeout(() => {
+        const finishTimeout = setTimeout(() => {
             console.log("[Playback] Finished");
             setIsPlaying(false);
+            setIsLightOn(false);
         }, totalDuration * 1000);
+        timeoutsRef.current.push(finishTimeout);
+
     }, []); // Empty dependency array since we only use refs
 
     return {
         isPlaying,
+        isLightOn,
         frequency,
         setFrequency,
         volume,

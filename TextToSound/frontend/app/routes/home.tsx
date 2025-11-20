@@ -8,6 +8,7 @@ import { ExampleTemplates } from "../components/ExampleTemplates";
 import { ControlPanel } from "../components/ControlPanel";
 import { MorseDisplay } from "../components/MorseDisplay";
 import { ConnectionStatus } from "../components/ConnectionStatus";
+import { VisualSignal } from "../components/VisualSignal";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -55,6 +56,7 @@ export default function Home() {
 
   const {
     isPlaying,
+    isLightOn,
     frequency,
     setFrequency,
     volume,
@@ -149,7 +151,18 @@ export default function Home() {
               </div>
             )}
 
-            <MorseDisplay lastMessage={lastMessage} isPlaying={isPlaying} />
+            {/* Output Section */}
+            <div className="mt-8 flex flex-col md:flex-row gap-6 items-center">
+              {/* Morse Display - Grows to fill space */}
+              <div className="flex-grow w-full">
+                <MorseDisplay lastMessage={lastMessage} isPlaying={isPlaying} />
+              </div>
+
+              {/* Visual Signal - Now on the right */}
+              <div className="flex-shrink-0">
+                <VisualSignal isLightOn={isLightOn} />
+              </div>
+            </div>
           </div>
 
           {/* Examples Sidebar - Right/Bottom */}
