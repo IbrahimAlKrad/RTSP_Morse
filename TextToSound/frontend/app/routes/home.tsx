@@ -9,6 +9,8 @@ import { ControlPanel } from "../components/ControlPanel";
 import { MorseDisplay } from "../components/MorseDisplay";
 import { ConnectionStatus } from "../components/ConnectionStatus";
 import { VisualSignal } from "../components/VisualSignal";
+import { AudioVisualizer } from "../components/AudioVisualizer";
+import { ViewSwitcher } from "../components/ViewSwitcher";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -50,6 +52,8 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Home() {
   const actionData = useActionData<typeof action>();
   const [lastMessage, setLastMessage] = useState<string>("");
+  const [viewMode, setViewMode] = useState<'text' | 'visualizer'>('text');
+  const [isExamplesExpanded, setIsExamplesExpanded] = useState(false);
   const { connectionError } = useConnectionStatus();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +68,7 @@ export default function Home() {
     ditDuration,
     setDitDuration,
     playMorse,
+    analyser,
   } = useMorseAudio();
 
   useEffect(() => {
@@ -109,9 +114,9 @@ export default function Home() {
           <ConnectionStatus isConnected={!connectionError} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${isExamplesExpanded ? 'lg:grid-cols-3' : 'lg:grid-cols-[1fr_auto]'}`}>
           {/* Main Form - Left/Top */}
-          <div className="lg:col-span-2 bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
+          <div className={`bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700 ${isExamplesExpanded ? 'lg:col-span-2' : ''}`}>
             <Form ref={formRef} method="post" className="space-y-6">
               <div>
                 <label htmlFor="text" className="block text-sm font-medium text-gray-300 mb-2">
@@ -152,21 +157,47 @@ export default function Home() {
             )}
 
             {/* Output Section */}
-            <div className="mt-8 flex flex-col md:flex-row gap-6 items-center">
-              {/* Morse Display - Grows to fill space */}
-              <div className="flex-grow w-full">
-                <MorseDisplay lastMessage={lastMessage} isPlaying={isPlaying} />
+            <div className="mt-8 flex flex-col md:flex-row gap-6 items-center h-48">
+              {/* Main Display Area (Text or Visualizer) */}
+              <div className="flex-grow w-full flex gap-4 items-center h-full">
+                {/* Vertical Switcher (Left) */}
+                <ViewSwitcher viewMode={viewMode} onViewChange={setViewMode} />
+
+                {/* Content Area */}
+                <div className="flex-grow h-full relative">
+                  {viewMode === 'text' ? (
+                    <div className="h-full overflow-y-auto">
+                      <MorseDisplay lastMessage={lastMessage} isPlaying={isPlaying} />
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col justify-center relative">
+                      <h2 className="absolute top-6 left-6 text-xs font-semibold text-gray-400 uppercase tracking-widest z-10">
+                        Audio Visualizer
+                      </h2>
+                      <div className="flex-grow flex items-center justify-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                        <AudioVisualizer analyser={analyser} />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Visual Signal - Now on the right */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex flex-col gap-4">
                 <VisualSignal isLightOn={isLightOn} />
               </div>
             </div>
+
           </div>
 
-          {/* Examples Sidebar - Right/Bottom */}
-          <ExampleTemplates onTemplateClick={handleTemplateClick} />
+          {/* Right Column - Examples */}
+          <div className="flex flex-col gap-6">
+            <ExampleTemplates
+              onTemplateClick={handleTemplateClick}
+              isExpanded={isExamplesExpanded}
+              setIsExpanded={setIsExamplesExpanded}
+            />
+          </div>
         </div>
       </div>
     </div>

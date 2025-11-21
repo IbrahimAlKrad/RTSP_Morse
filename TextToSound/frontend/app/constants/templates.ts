@@ -6,4 +6,5 @@ export const EXAMPLE_TEMPLATES = [
     "Good Morning",
     "Thank You",
     "Stream Processing",
+    "Karoline",
 ];

@@ -12,6 +12,7 @@ export function useMorseAudio() {
     const ditDurationRef = useRef(ditDuration);
     const audioContextRef = useRef<AudioContext | null>(null);
     const masterGainRef = useRef<GainNode | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
 
     // Keep refs in sync with state
     useEffect(() => {
@@ -43,10 +44,17 @@ export function useMorseAudio() {
             console.log("[Audio] Initializing AudioContext...");
             const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
             const masterGain = ctx.createGain();
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 2048;
+
             masterGain.gain.value = volume / 100;
-            masterGain.connect(ctx.destination);
+
+            // Connect: Source (created in playTone) -> MasterGain -> Analyser -> Destination
+            masterGain.connect(analyser);
+            analyser.connect(ctx.destination);
 
             masterGainRef.current = masterGain;
+            analyserRef.current = analyser;
             audioContextRef.current = ctx;
             console.log("[Audio] AudioContext initialized");
         }
@@ -57,6 +65,7 @@ export function useMorseAudio() {
                 audioContextRef.current.close();
                 audioContextRef.current = null;
                 masterGainRef.current = null;
+                analyserRef.current = null;
             }
         };
     }, []);
@@ -155,5 +164,6 @@ export function useMorseAudio() {
         ditDuration,
         setDitDuration,
         playMorse,
+        analyser: analyserRef.current,
     };
 }
