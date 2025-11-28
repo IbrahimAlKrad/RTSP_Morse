@@ -1,0 +1,15 @@
+edition = "2023";
+
+message MorseSymbol {
+    enum Symbol {
+        DIT = 0;
+        DAH = 1;
+        BREAK = 2;
+        WORD = 3;
+    }
+
+    Symbol symbol = 1;
+    double frequency = 2;
+
+    double timestamp = 3;
+}

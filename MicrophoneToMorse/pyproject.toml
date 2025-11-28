@@ -1,0 +1,14 @@
+[project]
+name = "microphonetomorse"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "black>=25.11.0",
+    "confluent-kafka>=2.12.2",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "protobuf>=6.33.1",
+    "pyaudio>=0.2.14",
+]

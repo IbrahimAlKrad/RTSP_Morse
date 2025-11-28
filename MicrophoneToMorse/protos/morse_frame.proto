@@ -1,0 +1,8 @@
+edition = "2023";
+
+message MorseFrame {
+    double magnitude = 1;
+    double frequency = 2;
+
+    double timestamp = 3;
+}
