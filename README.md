@@ -4,7 +4,7 @@ A collection of tools and applications for Morse code processing, including micr
 
 ## Project Structure
 
-### MicrophoneToMorse
+### SoundToMorse
 
 A Python-based pipeline that reads audio from a microphone, processes it through an Apache Kafka streaming architecture, and extracts Morse code. The pipeline uses the Goertzel algorithm for frequency detection and includes visualization tools for debugging.
 
@@ -55,7 +55,7 @@ A .NET 8 application for real-time audio processing and speech-to-text transcrip
 
 Refer to the individual sub-project READMEs for detailed setup instructions:
 
-- [MicrophoneToMorse/README.md](MicrophoneToMorse/README.md) - Python Kafka pipeline for Morse code extraction
+- [SoundToMorse/README.md](SoundToMorse/README.md) - Python Kafka pipeline for Morse code extraction
 - [TextToSound/README.md](TextToSound/README.md) - Text-to-Morse web application
 
 For SpeechToText, open the solution file `SpeechToText/Melanocetus.sln` in Visual Studio and build the project.
