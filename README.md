@@ -31,7 +31,7 @@ A real-time system that converts text to Morse code audio. It consists of a Pyth
 
 **Technologies:** Python, React, Bun, Docker, Apache Kafka
 
-### VisualStudioProject (Melanocetus)
+### SpeechToText
 
 A .NET 8 application for real-time audio processing and speech-to-text transcription using the Vosk speech recognition toolkit.
 
@@ -44,12 +44,12 @@ A .NET 8 application for real-time audio processing and speech-to-text transcrip
 
 **Technologies:** C#, .NET 8, NAudio, Vosk, OpusSharp
 
-### Misc
-
-Contains configuration files and models for the Melanocetus application.
-
-- `melanocetus.json`: Audio configuration settings (sample rates, frame duration, device selection)
-- `models/`: Pre-trained Vosk speech recognition models (e.g., `vosk-model-small-en-us-0.15`)
+**Contents:**
+- `Melanocetus/`: Main application source code
+- `Melanocetus.sln`: Visual Studio solution file
+- `Misc/`: Configuration files and Vosk speech recognition models
+  - `melanocetus.json`: Audio configuration settings (sample rates, frame duration, device selection)
+  - `models/`: Pre-trained Vosk speech recognition models (e.g., `vosk-model-small-en-us-0.15`)
 
 ## Getting Started
 
@@ -58,7 +58,7 @@ Refer to the individual sub-project READMEs for detailed setup instructions:
 - [MicrophoneToMorse/README.md](MicrophoneToMorse/README.md) - Python Kafka pipeline for Morse code extraction
 - [TextToSound/README.md](TextToSound/README.md) - Text-to-Morse web application
 
-For the Melanocetus (VisualStudioProject), open the solution file `VisualStudioProject/Melanocetus.sln` in Visual Studio and build the project.
+For SpeechToText, open the solution file `SpeechToText/Melanocetus.sln` in Visual Studio and build the project.
 
 ## License
 
