@@ -4,12 +4,19 @@ import numpy as np
 import time
 import pickle
 import os
+import asyncio
+
+# Fix for Python 3.10+ / 3.14 where no implicit event loop exists
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 class Message (faust.Record):
     user : str
     message : str
 
-app = faust.App('morsecode_protocoll',broker = 'kafka://localhost', web_port=6067)
+app = faust.App('morsecode_protocoll', broker='kafka://localhost:9092', web_port=6067, topic_allow_declare=False)
 sr_morse = app.topic('sr_morse', value_type = Message, key_type = str)
 
 morse_alphabet = {".-":"a",
@@ -37,7 +44,11 @@ morse_alphabet = {".-":"a",
                  ".--":"w",
                  "-..-":"x",
                  "-.--":"y",
-                 "--..":"z"}
+                 "--..":"z",
+                 ".-.-":"ä",
+                 "---.":"ö",
+                 "..--":"ü",
+                 "...--..":"ß"}
 
 class MorseTreeNode:
    
@@ -174,7 +185,9 @@ def translate_morse_to_text(morse_word):
     letter = morse_word.split()
     word=""
     for l in range(len(letter)):
-        word=word+morse_alphabet[letter[l]]
+        # Safely get character, skip if not found
+        char = morse_alphabet.get(letter[l], "")
+        word = word + char
     return word
 
 def tree_translate_morse_to_text(morse_sequence):

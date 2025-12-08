@@ -178,7 +178,9 @@ def translate_morse_to_text(morse_word):
     letter = morse_word.split()
     word=""
     for l in range(len(letter)):
-        word=word+morse_alphabet[letter[l]]
+        # Safely get character, skip if not found
+        char = morse_alphabet.get(letter[l], "")
+        word = word + char
     return word
 
 def tree_translate_morse_to_text(morse_sequence):
@@ -229,7 +231,10 @@ def translate_single_word_to_morse(word):
     letter = list(word)
     symbols=""
     for l in range(len(letter)):
-        symbols=symbols+" "+morse_alphabet_inverse[letter[l]]
+        # Safely get morse code, skip if not found
+        code = morse_alphabet_inverse.get(letter[l], "")
+        if code:
+            symbols = symbols + " " + code
     return symbols
 
 print(morse_alphabet_inverse["a"])

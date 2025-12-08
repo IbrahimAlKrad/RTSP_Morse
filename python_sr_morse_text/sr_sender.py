@@ -7,6 +7,13 @@ import time
 import pickle
 import os
 
+# Fix for Python 3.10+ / 3.14 where no implicit event loop exists
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
+
 r=sr.Recognizer()
 mic=sr.Microphone()
 
@@ -42,7 +49,10 @@ def translate_single_word_to_morse(word):
     letter = list(word)
     symbols=""
     for l in range(len(letter)):
-        symbols=symbols+" "+morse_alphabet_inverse[letter[l]]
+        # Safely get morse code, skip if not found
+        code = morse_alphabet_inverse.get(letter[l], "")
+        if code:
+            symbols = symbols + " " + code
     return symbols
 
 class Message (faust.Record):
@@ -62,7 +72,7 @@ def speech_to_str():
         print(f"Fehler bei der Verbindung zu Google Speech API: {e}")
         return ""
 
-app = faust.App('morsecode_sender',broker = 'kafka://localhost')
+app = faust.App('morsecode_sender', broker='kafka://localhost:9092', web_port=6068, topic_allow_declare=False)
 sr_morse = app.topic('sr_morse', value_type = Message, key_type = str)
 
 async def async_input():
