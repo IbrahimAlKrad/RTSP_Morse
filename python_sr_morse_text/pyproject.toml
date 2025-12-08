@@ -9,4 +9,5 @@ dependencies = [
     "SpeechRecognition>=3.10.0",
     "numpy>=1.26.0",
     "pyaudio>=0.2.14",
+    "protobuf>=6.33.2",
 ]
