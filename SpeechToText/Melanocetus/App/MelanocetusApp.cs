@@ -2,23 +2,35 @@
 using Melanocetus.Config;
 using Melanocetus.STT;
 using Melanocetus.Utils;
-
+using Confluent.Kafka;   
 namespace Melanocetus.App
 {
     internal sealed class MelanocetApp : IDisposable
     {
-
         private readonly AppMetrics _metrics;
-        
+
         private IAudioSource _source;
-        
+
         private AudioDispatcher _dispatcher = null!;
-        
+
         private VoskSink _sttSink = null!;
-        
+
         private bool _started;
 
-        public MelanocetApp(AppMetrics metrics) => _metrics = metrics;
+        
+        // Kafka Producer (inline init to remove warning)
+        
+        private readonly IProducer<Null, string> _producer =
+            new ProducerBuilder<Null, string>(
+                new ProducerConfig { BootstrapServers = "localhost:9092" }).Build();
+
+        // Kafka topic (change if your team wants a different one)
+        private const string KafkaTopic = "TEXT";
+
+        public MelanocetApp(AppMetrics metrics)
+        {
+            _metrics = metrics;
+        }
 
         public void Start(IAudioSource source)
         {
@@ -27,14 +39,40 @@ namespace Melanocetus.App
             {
                 Interlocked.Add(ref _metrics.SamplesThisSecond, frame.Length);
             };
-            Config.Config.Runtime.RecordingSampleRate = (source as NaudioMicrophoneSource).SampleRate;
+
+            // Safe direct cast with null-forgiving operator
+            Config.Config.Runtime.RecordingSampleRate = ((NaudioMicrophoneSource)source)!.SampleRate;
 
             _dispatcher = new AudioDispatcher(_source, 64);
-            
-            _sttSink = new VoskSink("models/vosk-model-small-de-0.15", 64);
+            //changed to en-us model
+            _sttSink = new VoskSink("models/vosk-model-small-en-us-0.15", 64);
             _sttSink.OnQueueChanged += q => _metrics.SttPendingPackets = q;
-            _sttSink.OnFinal += text => DebugConsole.Log($"[STT]: (Final): {text}");
-            _sttSink.OnPartial += text => DebugConsole.Log($"[STT]: (Partial): {text}");
+
+            
+            // SEND PARTIAL RESULTS TO KAFKA
+            
+            _sttSink.OnPartial += async text =>
+            {
+                DebugConsole.Log($"[STT]: (Partial): {text}");
+
+                await _producer.ProduceAsync(
+                    KafkaTopic,
+                    new Message<Null, string> { Value = text }
+                );
+            };
+
+            
+            // SEND FINAL RESULTS TO KAFKA
+            
+            _sttSink.OnFinal += async text =>
+            {
+                DebugConsole.Log($"[STT]: (Final): {text}");
+
+                await _producer.ProduceAsync(
+                    KafkaTopic,
+                    new Message<Null, string> { Value = text }
+                );
+            };
 
             _dispatcher.AddSink(_sttSink);
 
@@ -53,6 +91,9 @@ namespace Melanocetus.App
         {
             _dispatcher?.Dispose();
             (_source as IDisposable)?.Dispose();
+
+            // Dispose Kafka producer
+            _producer?.Dispose();
         }
     }
 }
