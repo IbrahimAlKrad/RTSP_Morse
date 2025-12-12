@@ -32,7 +32,7 @@ class WebSocketClient: NSObject, ObservableObject {
     
     // Connection settings (saved to UserDefaults)
     var savedServerURL: String {
-        get { UserDefaults.standard.string(forKey: "websocket_server_url") ?? "ws://192.168.188.32:8765" }
+        get { UserDefaults.standard.string(forKey: "websocket_server_url") ?? "ws://172.30.36.101:8765" }
         set { UserDefaults.standard.set(newValue, forKey: "websocket_server_url") }
     }
     

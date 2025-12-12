@@ -22,8 +22,8 @@ class StreamService: ObservableObject {
     // Published property for stream messages
     @Published var messages: [String] = []
     
-    // Current mode
-    private var mode: StreamMode = .fake
+    // Current mode (readable from outside, but only settable internally)
+    private(set) var mode: StreamMode = .fake
     
     // Fake stream continuation
     private var continuation: AsyncStream<String>.Continuation?
@@ -73,12 +73,26 @@ class StreamService: ObservableObject {
         let wsClient = WebSocketClient.shared
         
         // Create stream from WebSocket messages
+        // We yield JSON strings so the consumer can parse and filter by topic dynamically
         stream = AsyncStream<String> { continuation in
             wsClient.connect(to: serverURL) { receivedTopic, message in
-                // Filter by topic if specified
-                if topic == nil || receivedTopic == topic {
-                    continuation.yield(message)
+                // Create a JSON string with topic and message info
+                // This allows the consumer to filter by topic dynamically when tabs switch
+                let jsonString: String
+                if let jsonData = try? JSONSerialization.data(withJSONObject: [
+                    "topic": receivedTopic,
+                    "message": message,
+                    "type": "kafka_message"
+                ]),
+                   let jsonStr = String(data: jsonData, encoding: .utf8) {
+                    jsonString = jsonStr
+                } else {
+                    // Fallback: just send the message
+                    jsonString = message
                 }
+                
+                // Always yield all messages - filtering happens in Morse.swift based on active tab
+                continuation.yield(jsonString)
             }
             
             continuation.onTermination = { _ in

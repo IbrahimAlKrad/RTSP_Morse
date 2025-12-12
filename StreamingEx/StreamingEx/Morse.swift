@@ -89,7 +89,7 @@ struct Morse: View {
             // Debug Log (visible on screen)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("📊 DEBUG INFO:")
+                    Text("DEBUG INFO:")
                         .font(.caption)
                         .fontWeight(.bold)
                     
@@ -100,7 +100,7 @@ struct Morse: View {
                     
                     Divider()
                     
-                    Text("📱 MESSAGES:")
+                    Text("MESSAGES:")
                         .font(.caption)
                         .fontWeight(.bold)
                     
@@ -148,8 +148,8 @@ struct Morse: View {
         
         // Clear the displayed text
         streamedText = ""
-        debugLog += "\n\n🔄 SWITCHING TO TEXT TAB"
-        debugLog += "\n📌 Now filtering: text_input"
+        debugLog += "\n\n SWITCHING TO TEXT TAB"
+        debugLog += "\n Now filtering: text_input"
         
         // For WebSocket mode, no need to switch - just change the filter
         // Messages from all topics arrive via WebSocket, we filter client-side
@@ -163,8 +163,8 @@ struct Morse: View {
         
         // Clear the displayed text
         streamedText = ""
-        debugLog += "\n\n🔄 SWITCHING TO MORSE TAB"
-        debugLog += "\n📌 Now filtering: morse_output"
+        debugLog += "\n\n SWITCHING TO MORSE TAB"
+        debugLog += "\n Now filtering: morse_output"
         
         // For WebSocket mode, no need to switch - just change the filter
         // Messages from all topics arrive via WebSocket, we filter client-side
@@ -175,75 +175,143 @@ struct Morse: View {
     
     /// Starts listening to the stream
     func startStreaming() {
-        print("🚀 Morse.swift: startStreaming() called")
-        debugLog += "\n🚀 START: startStreaming() called"
+        print("Morse.swift: startStreaming() called")
+        debugLog += "\n START: startStreaming() called"
         streamTask?.cancel()
         subscribed = true
         connectionError = nil
         
-        print("🚀 Morse.swift: Creating stream task...")
-        debugLog += "\n🚀 Creating stream task..."
+        print(" Morse.swift: Creating stream task...")
+        debugLog += "\n Creating stream task..."
         streamTask = Task {
-            print("🚀 Morse.swift: Inside Task, starting stream setup...")
+            print(" Morse.swift: Inside Task, starting stream setup...")
             await MainActor.run {
-                debugLog += "\n🚀 Inside Task, setting up stream..."
+                debugLog += "\n Inside Task, setting up stream..."
             }
-            // If using Kafka, ensure we're connected to the correct topic
-            // (For fake stream, the stream is already set up)
+            
             do {
-                // Determine which topic to connect to based on current mode
+                // Determine which topic to connect to based on current tab
                 let targetTopic = text_active ? "text_input" : "morse_output"
-                print("🚀 Morse.swift: Target topic is: \(targetTopic)")
+                print("Morse.swift: Target topic is: \(targetTopic)")
                 await MainActor.run {
-                    debugLog += "\n📌 Target topic: \(targetTopic)"
+                    debugLog += "\n Target topic: \(targetTopic)"
                 }
                 
-                // Try to connect if not already connected (for Kafka)
-                // This is safe to call even if already connected
-                print("🚀 Morse.swift: Attempting to connect to Kafka...")
-                await MainActor.run {
-                    debugLog += "\n🔌 Connecting to Kafka..."
+                // Check which mode we're in and connect accordingly
+                switch streamService.mode {
+                case .fake:
+                    // Fake stream is already set up, no connection needed
+                    print(" Morse.swift: Using fake stream")
+                    await MainActor.run {
+                        debugLog += "\n Using fake stream"
+                    }
+                    
+                case .kafka:
+                    // REST Proxy mode - connect to specific topic
+                    print(" Morse.swift: Attempting to connect to Kafka REST Proxy...")
+                    await MainActor.run {
+                        debugLog += "\n Connecting to Kafka REST Proxy..."
+                    }
+                    try await streamService.connectToKafka(topic: targetTopic)
+                    
+                case .websocket(let serverURL):
+                    // WebSocket mode - connect and receive all topics, filter client-side
+                    print(" Morse.swift: Attempting to connect to WebSocket...")
+                    await MainActor.run {
+                        debugLog += "\n Connecting to WebSocket at \(serverURL)..."
+                    }
+                    // Connect without topic filter - we'll filter in the loop
+                    try await streamService.connectToWebSocket(topic: nil)
                 }
-                try? await streamService.connectToKafka(topic: targetTopic)
                 
-                print("🚀 Morse.swift: Checking if stream is available...")
+                print(" Morse.swift: Checking if stream is available...")
                 await MainActor.run {
-                    debugLog += "\n🔍 Checking stream..."
+                    debugLog += "\n Checking stream..."
                 }
                 guard let stream = streamService.stream else {
-                    print("❌ Morse.swift: Stream is NIL!")
+                    print("Morse.swift: Stream is NIL!")
                     await MainActor.run {
-                        debugLog += "\n❌ ERROR: Stream is NIL!"
+                        debugLog += "\n ERROR: Stream is NIL!"
                         connectionError = "Stream not available"
                         subscribed = false
                     }
                     return
                 }
                 
-                print("✅ Morse.swift: Stream is available! Starting to consume messages...")
+                print("Morse.swift: Stream is available! Starting to consume messages...")
                 await MainActor.run {
-                    debugLog += "\n✅ Stream available! Listening..."
+                    debugLog += "\n Stream available! Listening..."
                 }
+                
+                // Consume messages with topic filtering for WebSocket mode
                 for await message in stream {
                     guard !Task.isCancelled else { break }
-                    print("📱 Morse.swift: Received message from stream: \(message)")
-                    await MainActor.run {
-                        print("📱 Morse.swift: Updating UI with message")
-                        debugLog += "\n📨 GOT MESSAGE: \(message.prefix(50))"
-                        // Append the message to the existing text
-                        if streamedText.isEmpty {
-                            streamedText = message
+                    
+                    // For WebSocket mode, messages come as JSON with topic info
+                    // For REST Proxy/Fake, messages are plain strings
+                    if case .websocket = streamService.mode {
+                        // Parse WebSocket message to extract topic
+                        if let data = message.data(using: .utf8),
+                           let wsMessage = try? JSONDecoder().decode(KafkaWebSocketMessage.self, from: data) {
+                            
+                            if wsMessage.type == "connected" {
+                                await MainActor.run {
+                                    debugLog += "\n WebSocket connected!"
+                                }
+                                continue
+                            }
+                            
+                            // Check if this message matches the current tab's topic
+                            // We need to check text_active on the main actor
+                            let shouldShow = await MainActor.run {
+                                let currentWantedTopic = text_active ? "text_input" : "morse_output"
+                                return wsMessage.topic == currentWantedTopic
+                            }
+                            
+                            // Filter by topic
+                            if shouldShow, let topic = wsMessage.topic, let msgContent = wsMessage.message {
+                                await MainActor.run {
+                                    debugLog += "\n📨 [\(topic)]: \(msgContent.prefix(40))"
+                                    if streamedText.isEmpty {
+                                        streamedText = msgContent
+                                    } else {
+                                        streamedText += "\n" + msgContent
+                                    }
+                                }
+                            } else {
+                                // Silently ignore messages from other topics
+                                print("Filtered out message from topic: \(wsMessage.topic ?? "unknown")")
+                            }
                         } else {
-                            streamedText += "\n" + message
+                            // Raw message (fallback) - show it
+                            await MainActor.run {
+                                debugLog += "\n RAW: \(message.prefix(40))"
+                                if streamedText.isEmpty {
+                                    streamedText = message
+                                } else {
+                                    streamedText += "\n" + message
+                                }
+                            }
                         }
-                        print("📱 Morse.swift: UI updated. Total text length: \(streamedText.count)")
-                        debugLog += "\n✅ UI updated! Msg count: \(streamedText.split(separator: "\n").count)"
+                    } else {
+                        // REST Proxy or Fake stream - show all messages
+                        print("Morse.swift: Received message from stream: \(message)")
+                        await MainActor.run {
+                            debugLog += "\n GOT MESSAGE: \(message.prefix(50))"
+                            if streamedText.isEmpty {
+                                streamedText = message
+                            } else {
+                                streamedText += "\n" + message
+                            }
+                            debugLog += "\n UI updated! Msg count: \(streamedText.split(separator: "\n").count)"
+                        }
                     }
                 }
             } catch {
                 await MainActor.run {
                     connectionError = "Connection error: \(error.localizedDescription)"
                     subscribed = false
+                    debugLog += "\n ERROR: \(error.localizedDescription)"
                 }
             }
         }
@@ -276,11 +344,11 @@ struct Morse: View {
         if savedMode == ConnectionMode.websocket.rawValue,
            let wsURL = defaults.string(forKey: "websocket_url"),
            !wsURL.isEmpty {
-            print("🔌 Auto-setting WebSocket mode...")
-            debugLog += "\n🔌 WebSocket mode detected"
-            debugLog += "\n📍 URL: \(wsURL)"
+            print("Auto-setting WebSocket mode...")
+            debugLog += "\n WebSocket mode detected"
+            debugLog += "\n URL: \(wsURL)"
             streamService.useWebSocket(serverURL: wsURL)
-            debugLog += "\n✅ WebSocket configured! Tap Play to start."
+            debugLog += "\n WebSocket configured! Tap Play to start."
             return
         }
         
@@ -289,15 +357,15 @@ struct Morse: View {
               let savedTopic = defaults.string(forKey: "kafka_topic"),
               let savedGroup = defaults.string(forKey: "kafka_consumer_group"),
               !savedURL.isEmpty else {
-            print("⚠️ No saved settings, skipping auto-connect")
-            debugLog += "\n⚠️ No saved settings - tap Config to setup"
+            print("No saved settings, skipping auto-connect")
+            debugLog += "\n No saved settings - tap Config to setup"
             return
         }
         
-        print("🔌 Auto-connecting to saved Kafka settings...")
-        debugLog += "\n🔌 REST Proxy mode detected"
-        debugLog += "\n📍 URL: \(savedURL)"
-        debugLog += "\n📌 Topic: \(savedTopic)"
+        print("Auto-connecting to saved Kafka settings...")
+        debugLog += "\n REST Proxy mode detected"
+        debugLog += "\n URL: \(savedURL)"
+        debugLog += "\n Topic: \(savedTopic)"
         
         let config = KafkaConfig(
             restProxyURL: savedURL,
@@ -308,7 +376,7 @@ struct Morse: View {
         )
         
         streamService.useKafka(config: config)
-        debugLog += "\n✅ Kafka configured! Tap Play to start."
+        debugLog += "\n Kafka configured! Tap Play to start."
     }
     
     // MARK: - Simple Client (WebSocket or REST Proxy)
@@ -329,20 +397,20 @@ struct Morse: View {
         // Fall back to REST Proxy
         guard let savedURL = defaults.string(forKey: "kafka_rest_proxy_url"),
               !savedURL.isEmpty else {
-            debugLog += "\n❌ No connection configured! Tap Config."
+            debugLog += "\n No connection configured! Tap Config."
             return
         }
         
-        debugLog += "\n\n🚀 Starting REST Proxy Client..."
-        debugLog += "\n📍 URL: \(savedURL)"
-        debugLog += "\n📌 Topic: \(topic)"
+        debugLog += "\n\n Starting REST Proxy Client..."
+        debugLog += "\n URL: \(savedURL)"
+        debugLog += "\n Topic: \(topic)"
         
         // Create simple client
         simpleClient = SimpleKafkaClient(restProxyURL: savedURL)
         
         // Setup callbacks
         simpleClient?.onMessage = { message in
-            debugLog += "\n📨 GOT: \(message.prefix(50))"
+            debugLog += "\n GOT: \(message.prefix(50))"
             if streamedText.isEmpty {
                 streamedText = message
             } else {
@@ -361,11 +429,11 @@ struct Morse: View {
                 simpleClient?.startPolling()
                 await MainActor.run {
                     subscribed = true
-                    debugLog += "\n✅ Polling started!"
+                    debugLog += "\n Polling started!"
                 }
             } catch {
                 await MainActor.run {
-                    debugLog += "\n❌ Error: \(error.localizedDescription)"
+                    debugLog += "\n Error: \(error.localizedDescription)"
                     connectionError = error.localizedDescription
                 }
             }
@@ -373,9 +441,9 @@ struct Morse: View {
     }
     
     func startWebSocket(url: String, topic: String) {
-        debugLog += "\n\n🚀 Starting WebSocket Client..."
-        debugLog += "\n📍 URL: \(url)"
-        debugLog += "\n📌 Listening to ALL topics (filter by tab)"
+        debugLog += "\n\n Starting WebSocket Client..."
+        debugLog += "\n URL: \(url)"
+        debugLog += "\n Listening to ALL topics (filter by tab)"
         
         let wsClient = WebSocketClient.shared
         
@@ -408,12 +476,12 @@ struct Morse: View {
             await MainActor.run {
                 if wsClient.isConnected {
                     subscribed = true
-                    debugLog += "\n✅ WebSocket connected! Waiting for messages..."
+                    debugLog += "\n WebSocket connected! Waiting for messages..."
                 } else if let error = wsClient.lastError {
-                    debugLog += "\n❌ WebSocket error: \(error)"
+                    debugLog += "\n WebSocket error: \(error)"
                     connectionError = error
                 } else {
-                    debugLog += "\n⏳ Connecting..."
+                    debugLog += "\n Connecting..."
                     subscribed = true // Assume connecting
                 }
             }
@@ -430,7 +498,7 @@ struct Morse: View {
             await MainActor.run {
                 simpleClient = nil
                 subscribed = false
-                debugLog += "\n⏹️ Stopped"
+                debugLog += "\n Stopped"
             }
         }
     }
