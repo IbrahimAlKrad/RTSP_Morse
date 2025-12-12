@@ -19,9 +19,9 @@ Both topics are auto-created by Kafka on first use.
 - Python 3.12+ & uv (for backend)
 
 ## Configuration
- 
+
  Both backend and frontend use environment variables for configuration.
- 
+
  ### Backend
 
  **Default `.env` content:**
@@ -32,21 +32,22 @@ Both topics are auto-created by Kafka on first use.
  OUTPUT_TOPIC=morse_output
  HEARTBEAT_TOPIC=backend_health
  ```
- 
+
  ### Frontend
- 
+
  **Default `.env` content:**
  ```ini
  KAFKA_BROKERS=localhost:9094
  ```
- 
+
 ## Setup & Run
 
 ### 1. Start Kafka Infrastructure
 
-From the root directory (`RTSP_Morse`):
+Open a terminal in `TextToSound`:
 
 ```bash
+cd TextToSound
 docker-compose up -d
 ```
 
@@ -75,3 +76,5 @@ bun dev
 ```
 
 The frontend will be available at `http://localhost:5173`.
+
+
