@@ -16,9 +16,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
         async start(controller) {
             await consumer.run({
                 eachMessage: async ({ topic, partition, message }) => {
-                    const text = message.value?.toString();
-                    if (text) {
-                        const data = `data: ${JSON.stringify({ morse: text })}\n\n`;
+                    const rawValue = message.value?.toString();
+                    if (rawValue) {
+                        let payload = { morse: rawValue, source: 'text' };
+                        try {
+                            const json = JSON.parse(rawValue);
+                            if (json && (json.morse || json.source)) {
+                                payload = json;
+                            }
+                        } catch (e) {
+                            // Not JSON, assume raw string
+                        }
+                        const data = `data: ${JSON.stringify(payload)}\n\n`;
                         controller.enqueue(new TextEncoder().encode(data));
                     }
                 },

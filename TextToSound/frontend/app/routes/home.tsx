@@ -54,9 +54,16 @@ export default function Home() {
   const [lastMessage, setLastMessage] = useState<string>("");
   const [viewMode, setViewMode] = useState<'text' | 'visualizer'>('text');
   const [isExamplesExpanded, setIsExamplesExpanded] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const speechEnabledRef = useRef(speechEnabled);
   const { connectionError } = useConnectionStatus();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    speechEnabledRef.current = speechEnabled;
+    console.log(`[Input Mode] Switched to: ${speechEnabled ? 'SPEECH' : 'TEXT'} input`);
+  }, [speechEnabled]);
 
   const {
     isPlaying,
@@ -76,11 +83,23 @@ export default function Home() {
     const morseStream = new EventSource("/stream");
 
     morseStream.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.morse) {
-        console.log(`[Kafka Consumer] Received from 'morse_output': "${data.morse}"`);
-        setLastMessage(data.morse);
-        playMorse(data.morse);
+      try {
+        const data = JSON.parse(event.data);
+        const source = data.source || 'text';
+
+        // Filter out speech if disabled
+        if (source === 'speech' && !speechEnabledRef.current) {
+          console.log(`[Kafka Consumer] Ignored speech input (disabled)`);
+          return;
+        }
+
+        if (data.morse) {
+          console.log(`[Kafka Consumer] Received from '${source}': "${data.morse}"`);
+          setLastMessage(data.morse);
+          playMorse(data.morse);
+        }
+      } catch (e) {
+        console.error("Error parsing stream data", e);
       }
     };
 
@@ -117,6 +136,24 @@ export default function Home() {
         <div className={`grid grid-cols-1 gap-6 ${isExamplesExpanded ? 'lg:grid-cols-3' : 'lg:grid-cols-[1fr_auto]'}`}>
           {/* Main Form - Left/Top */}
           <div className={`bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700 ${isExamplesExpanded ? 'lg:col-span-2' : ''}`}>
+
+            {/* Input Method Switch */}
+            <div className="flex justify-end mb-6">
+              <label className="flex items-center space-x-3 cursor-pointer group">
+                <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Enable Speech Input</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={speechEnabled}
+                    onChange={(e) => setSpeechEnabled(e.target.checked)}
+                  />
+                  <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ease-in-out ${speechEnabled ? 'bg-blue-600' : 'bg-gray-600'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 ease-in-out shadow-sm ${speechEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </div>
+              </label>
+            </div>
+
             <Form ref={formRef} method="post" className="space-y-6">
               <div>
                 <label htmlFor="text" className="block text-sm font-medium text-gray-300 mb-2">
@@ -127,15 +164,17 @@ export default function Home() {
                   type="text"
                   name="text"
                   id="text"
-                  placeholder="Hello World"
+                  disabled={speechEnabled}
+                  placeholder={speechEnabled ? "Speech Input Active..." : "Hello World"}
                   autoComplete="off"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-white placeholder-gray-400"
+                  className={`w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-white placeholder-gray-400 ${speechEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold rounded-lg shadow-lg transform transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={speechEnabled}
+                className={`w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold rounded-lg shadow-lg transform transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${speechEnabled ? 'opacity-50 cursor-not-allowed hover:from-blue-500 hover:to-cyan-500' : ''}`}
               >
                 Convert & Play
               </button>
