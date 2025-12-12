@@ -18,13 +18,13 @@ namespace Melanocetus.App
         private bool _started;
 
         
-        // Kafka Producer (inline init to remove warning)
+        // Kafka Producer 
         
         private readonly IProducer<Null, string> _producer =
             new ProducerBuilder<Null, string>(
                 new ProducerConfig { BootstrapServers = "localhost:9092" }).Build();
 
-        // Kafka topic (change if your team wants a different one)
+        // Kafka topic 
         private const string KafkaTopic = "TEXT";
 
         public MelanocetApp(AppMetrics metrics)
@@ -44,7 +44,7 @@ namespace Melanocetus.App
             Config.Config.Runtime.RecordingSampleRate = ((NaudioMicrophoneSource)source)!.SampleRate;
 
             _dispatcher = new AudioDispatcher(_source, 64);
-            //changed to en-us model
+            //changed to en-us model if you want another language change the path accordingly (de)
             _sttSink = new VoskSink("models/vosk-model-small-en-us-0.15", 64);
             _sttSink.OnQueueChanged += q => _metrics.SttPendingPackets = q;
 
