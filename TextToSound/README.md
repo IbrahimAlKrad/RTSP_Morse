@@ -26,10 +26,10 @@ Both topics are auto-created by Kafka on first use.
 
  **Default `.env` content:**
  ```ini
- KAFKA_BOOTSTRAP_SERVERS=localhost:9095
+ KAFKA_BOOTSTRAP_SERVERS=45.88.110.47:9095
  KAFKA_GROUP_ID=python_morse_converter
  TEXT_TOPIC=text_input
- SPEECH_TOPIC=TEXT
+ SPEECH_TOPIC=STT-Text
  OUTPUT_TOPIC=morse_output
  HEARTBEAT_TOPIC=backend_health
  ```
@@ -38,25 +38,32 @@ Both topics are auto-created by Kafka on first use.
 
  **Default `.env` content:**
  ```ini
- KAFKA_BROKERS=localhost:9095
+ KAFKA_BROKERS=45.88.110.47:9095
  ```
 
 ## SpeechToText Integration
-The system is integrated with the `Melanocetus` SpeechToText service.
-1. `Melanocetus` captures audio and sends recognized text to Kafka topic `TEXT` on port `9095`.
-2. `TextToSound` backend listens to `TEXT` topic.
+The system is integrated with the `Melanocetus` SpeechToText service running on the Remote Server.
+1. `Melanocetus` sends recognized text to Kafka topic `STT-Text`.
+2. `TextToSound` backend listens to `STT-Text` topic.
 3. Users can enable "Speech Input" in the frontend to visualize this flow.
 
 ## Setup & Run
 
-### 1. Start Kafka Infrastructure
+### 1. Kafka Infrastructure
+Kafka is running on the **Remote Server** (`45.88.110.47:9095`). You DO NOT need to run `docker-compose up` locally.
 
-Open a terminal in `TextToSound`:
-
-```bash
-cd TextToSound
-docker-compose up -d
-```
+### Alternative: Running Locally (Docker)
+If you prefer to run everything locally:
+1. Start local Kafka:
+   ```bash
+   cd TextToSound
+   docker-compose up -d
+   ```
+2. Update `.env` files in `backend/` and `frontend/` to use `localhost:9095`:
+   ```ini
+   KAFKA_BOOTSTRAP_SERVERS=localhost:9095
+   KAFKA_BROKERS=localhost:9095
+   ```
 
 ### 2. Start Python Backend
 
