@@ -4,7 +4,7 @@ import { Kafka } from "kafkajs";
 export async function loader({ request }: LoaderFunctionArgs) {
     const kafka = new Kafka({
         clientId: "frontend-health-client",
-        brokers: [(process.env.KAFKA_BROKERS || "localhost:9094")],
+        brokers: [(process.env.KAFKA_BROKERS || "localhost:9095")],
     });
 
     const consumer = kafka.consumer({ groupId: "frontend-health-group-" + Date.now() });

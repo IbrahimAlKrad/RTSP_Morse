@@ -22,7 +22,7 @@ namespace Melanocetus.App
         
         private readonly IProducer<Null, string> _producer =
             new ProducerBuilder<Null, string>(
-                new ProducerConfig { BootstrapServers = "localhost:9092" }).Build();
+                new ProducerConfig { BootstrapServers = "localhost:9095" }).Build();
 
         // Kafka topic 
         private const string KafkaTopic = "TEXT";

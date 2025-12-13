@@ -26,9 +26,10 @@ Both topics are auto-created by Kafka on first use.
 
  **Default `.env` content:**
  ```ini
- KAFKA_BOOTSTRAP_SERVERS=localhost:9094
+ KAFKA_BOOTSTRAP_SERVERS=localhost:9095
  KAFKA_GROUP_ID=python_morse_converter
- INPUT_TOPIC=text_input
+ TEXT_TOPIC=text_input
+ SPEECH_TOPIC=TEXT
  OUTPUT_TOPIC=morse_output
  HEARTBEAT_TOPIC=backend_health
  ```
@@ -37,8 +38,14 @@ Both topics are auto-created by Kafka on first use.
 
  **Default `.env` content:**
  ```ini
- KAFKA_BROKERS=localhost:9094
+ KAFKA_BROKERS=localhost:9095
  ```
+
+## SpeechToText Integration
+The system is integrated with the `Melanocetus` SpeechToText service.
+1. `Melanocetus` captures audio and sends recognized text to Kafka topic `TEXT` on port `9095`.
+2. `TextToSound` backend listens to `TEXT` topic.
+3. Users can enable "Speech Input" in the frontend to visualize this flow.
 
 ## Setup & Run
 

@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9094")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9095")
 KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "python_morse_converter")
-TEXT_TOPIC = os.getenv("TEXT_TOPIC", "text_input")  # This is Maltes project topic
-SPEECH_TOPIC = os.getenv("SPEECH_TOPIC", "INPUT_TOPIC")  # From sr_sender.py
+TEXT_TOPIC = os.getenv("TEXT_TOPIC", "text_input")
+SPEECH_TOPIC = os.getenv("SPEECH_TOPIC", "TEXT")
 OUTPUT_TOPIC = os.getenv("OUTPUT_TOPIC", "morse_output")
 HEARTBEAT_TOPIC = os.getenv("HEARTBEAT_TOPIC", "backend_health")
 
@@ -109,8 +109,10 @@ def main() -> None:
                         source = "speech"
                         logger.info(f"Received speech input: {text_data}")
                     except json.JSONDecodeError:
-                        logger.warning(f"Failed to decode JSON from {topic}")
-                        continue
+                        # Fallback: Treat as raw string (used by Melanocetus)
+                        text_data = msg.value().decode("utf-8")
+                        source = "speech"
+                        logger.info(f"Received raw speech input: {text_data}")
                 else:
                     # Default/Text topic - Expecting raw string
                     text_data = msg.value().decode("utf-8")

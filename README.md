@@ -22,6 +22,7 @@ A real-time system that converts text to Morse code audio. It consists of a Pyth
 
 **Architecture:**
 - User Input → `text_input` topic → Python Backend → `morse_output` topic → Frontend → Audio
+- Speech Input (`Melanocetus`) → `TEXT` topic (Port 9095) → Python Backend
 
 **Key Features:**
 - Web-based user interface

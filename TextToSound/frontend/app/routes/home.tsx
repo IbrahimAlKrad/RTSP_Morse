@@ -29,7 +29,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const kafka = new Kafka({
     clientId: "frontend-producer",
-    brokers: [(process.env.KAFKA_BROKERS || "localhost:9094")],
+    brokers: [(process.env.KAFKA_BROKERS || "localhost:9095")],
   });
 
   const producer = kafka.producer();
