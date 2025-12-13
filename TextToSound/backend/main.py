@@ -20,7 +20,7 @@ load_dotenv()
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9095")
 KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "python_morse_converter")
 TEXT_TOPIC = os.getenv("TEXT_TOPIC", "text_input")
-SPEECH_TOPIC = os.getenv("SPEECH_TOPIC", "TEXT")
+SPEECH_TOPIC = os.getenv("SPEECH_TOPIC", "STT-Text")
 OUTPUT_TOPIC = os.getenv("OUTPUT_TOPIC", "morse_output")
 HEARTBEAT_TOPIC = os.getenv("HEARTBEAT_TOPIC", "backend_health")
 

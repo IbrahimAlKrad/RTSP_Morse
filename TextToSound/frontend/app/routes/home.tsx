@@ -11,6 +11,7 @@ import { ConnectionStatus } from "../components/ConnectionStatus";
 import { VisualSignal } from "../components/VisualSignal";
 import { AudioVisualizer } from "../components/AudioVisualizer";
 import { ViewSwitcher } from "../components/ViewSwitcher";
+import { Toast } from "../components/Toast";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -59,6 +60,7 @@ export default function Home() {
   const { connectionError } = useConnectionStatus();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [notification, setNotification] = useState<{ message: string, visible: boolean }>({ message: "", visible: false });
 
   useEffect(() => {
     speechEnabledRef.current = speechEnabled;
@@ -86,6 +88,11 @@ export default function Home() {
       try {
         const data = JSON.parse(event.data);
         const source = data.source || 'text';
+
+        // Show notification for speech input regardless of enabled state (so user knows it works)
+        if (source === 'speech' && data.original_text) {
+          setNotification({ message: data.original_text, visible: true });
+        }
 
         // Filter out speech if disabled
         if (source === 'speech' && !speechEnabledRef.current) {
@@ -132,6 +139,12 @@ export default function Home() {
           {/* Status Pill */}
           <ConnectionStatus isConnected={!connectionError} />
         </div>
+
+        <Toast
+          message={notification.message}
+          isVisible={notification.visible}
+          onClose={() => setNotification(prev => ({ ...prev, visible: false }))}
+        />
 
         <div className={`grid grid-cols-1 gap-6 ${isExamplesExpanded ? 'lg:grid-cols-3' : 'lg:grid-cols-[1fr_auto]'}`}>
           {/* Main Form - Left/Top */}
